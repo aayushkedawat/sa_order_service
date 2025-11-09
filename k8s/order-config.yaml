@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-config
+  namespace: default
+data:
+  MENU_SVC: "http://restaurant-svc:8080/v1"
+  CUST_SVC: "http://customer-svc:8080/v1"
+  PAY_SVC: "http://payment-svc:8080/v1"
+  DELIV_SVC: "http://delivery-svc:8080/v1"
+  DELIVERY_FEE: "40.0"
+  HTTP_TIMEOUT_MS: "2500"
+  HTTP_RETRIES: "2"
+  CIRCUIT_FAILURES: "5"
+  CIRCUIT_RESET_MS: "20000"
+  NODE_ENV: "production"
+  PORT: "8080"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: order-secret
+  namespace: default
+type: Opaque
+stringData:
+  DB_DSN: "postgresql://order_user:order_pass@order-db:5432/orderdb"
