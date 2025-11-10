@@ -2,7 +2,6 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import {
   IsString,
-  IsUUID,
   IsArray,
   ValidateNested,
   IsNumber,
@@ -11,12 +10,15 @@ import {
   IsEnum,
   IsOptional,
   ArrayMaxSize,
+  IsInt,
+  IsPositive,
 } from "class-validator";
 
 class OrderItemDto {
   @ApiProperty()
-  @IsUUID()
-  itemId: string;
+  @IsInt()
+  @IsPositive()
+  itemId: number;
 
   @ApiProperty({ minimum: 1, maximum: 5 })
   @IsNumber()
@@ -60,16 +62,19 @@ class PaymentDto {
 
 export class CreateOrderDto {
   @ApiProperty()
-  @IsUUID()
-  customerId: string;
+  @IsInt()
+  @IsPositive()
+  customerId: number;
 
   @ApiProperty()
-  @IsUUID()
-  restaurantId: string;
+  @IsInt()
+  @IsPositive()
+  restaurantId: number;
 
   @ApiProperty()
-  @IsUUID()
-  addressId: string;
+  @IsInt()
+  @IsPositive()
+  addressId: number;
 
   @ApiProperty({ type: [OrderItemDto], maxItems: 20 })
   @IsArray()
