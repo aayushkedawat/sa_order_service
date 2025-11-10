@@ -2,18 +2,18 @@ import { Entity, PrimaryColumn, Column, CreateDateColumn } from "typeorm";
 
 @Entity("idempotency_keys")
 export class IdempotencyKey {
-  @PrimaryColumn({ type: "text" })
+  @PrimaryColumn({ type: "text", name: "idempotency_key" })
   idempotencyKey: string;
 
-  @Column({ type: "text" })
+  @Column({ type: "text", name: "request_hash" })
   requestHash: string;
 
-  @Column({ type: "jsonb" })
+  @Column({ type: "jsonb", name: "response_body" })
   responseBody: any;
 
-  @Column({ type: "int" })
+  @Column({ type: "int", name: "status_code" })
   statusCode: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 }

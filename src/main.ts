@@ -2,12 +2,16 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
+import { PinoLoggerService } from "./common/observability/logger.service";
 import { writeFileSync } from "fs";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ["log", "error", "warn", "debug"],
+    bufferLogs: true,
   });
+
+  const logger = app.get(PinoLoggerService);
+  app.useLogger(logger);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -35,7 +39,12 @@ async function bootstrap() {
 
   const port = process.env.PORT || 8080;
   await app.listen(port);
-  console.log(`Order Service running on port ${port}`);
+  logger.log({
+    type: "startup",
+    message: "Order Service started",
+    port,
+    environment: process.env.NODE_ENV || "development",
+  });
 }
 
 bootstrap();

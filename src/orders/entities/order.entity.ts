@@ -33,14 +33,14 @@ export class Order {
   @PrimaryGeneratedColumn()
   order_id: number;
 
-  @Column({ type: "int" })
-  customer_id: number;
+  @Column({ type: "text" })
+  customer_id: string;
 
   @Column({ type: "int" })
   restaurant_id: number;
 
-  @Column({ type: "int" })
-  address_id: number;
+  @Column({ type: "text" })
+  address_id: string;
 
   @Column({
     type: "enum",

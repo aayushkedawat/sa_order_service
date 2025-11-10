@@ -7,8 +7,11 @@ npm-debug.log
 README.md
 QUICKSTART.md
 DATABASE_SETUP.md
+OBSERVABILITY.md
 *.md
 .vscode
 .idea
 coverage
 .DS_Store
+prometheus.yml
+postman_collection.json

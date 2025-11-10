@@ -55,7 +55,7 @@ export class OrdersService {
     const restaurant: any = await this.httpService.get(
       `${menuSvc}/restaurants/${dto.restaurantId}`
     );
-    if (!restaurant.is_open) {
+    if (!restaurant.isOpen && !restaurant.is_open && !restaurant.open) {
       throw new BusinessException(
         "RESTAURANT_CLOSED",
         "Restaurant is not open",
@@ -63,16 +63,25 @@ export class OrdersService {
       );
     }
 
-    // Fetch menu items
-    const itemIds = dto.items.map((i) => i.itemId).join(",");
+    // Fetch menu items from restaurant menu
     const menuItems: any[] = await this.httpService.get(
-      `${menuSvc}/menu/items?ids=${itemIds}`
+      `${menuSvc}/restaurants/${dto.restaurantId}/menu`
     );
-    const itemMap = new Map(menuItems.map((item: any) => [item.id, item]));
+    const itemMap = new Map(
+      menuItems.map((item: any) => [parseInt(item.id), item])
+    );
 
     for (const reqItem of dto.items) {
       const menuItem: any = itemMap.get(reqItem.itemId);
-      if (!menuItem || !menuItem.is_available) {
+      if (!menuItem) {
+        throw new BusinessException(
+          "ITEM_UNAVAILABLE",
+          `Item ${reqItem.itemId} not available`,
+          HttpStatus.UNPROCESSABLE_ENTITY
+        );
+      }
+      // Check availability
+      if (menuItem.available === false) {
         throw new BusinessException(
           "ITEM_UNAVAILABLE",
           `Item ${reqItem.itemId} not available`,
@@ -251,7 +260,7 @@ export class OrdersService {
   }
 
   async findAll(
-    customerId?: number,
+    customerId?: string,
     restaurantId?: number,
     status?: string,
     limit = 20,

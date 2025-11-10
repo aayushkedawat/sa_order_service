@@ -42,7 +42,7 @@ export class OrdersController {
     @Query("cursor") cursor?: string
   ) {
     return this.ordersService.findAll(
-      customerId ? parseInt(customerId) : undefined,
+      customerId,
       restaurantId ? parseInt(restaurantId) : undefined,
       status,
       limit,

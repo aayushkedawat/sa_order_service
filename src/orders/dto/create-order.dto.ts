@@ -15,7 +15,7 @@ import {
 } from "class-validator";
 
 class OrderItemDto {
-  @ApiProperty()
+  @ApiProperty({ description: "Menu item ID (integer)" })
   @IsInt()
   @IsPositive()
   itemId: number;
@@ -61,20 +61,22 @@ class PaymentDto {
 }
 
 export class CreateOrderDto {
-  @ApiProperty()
-  @IsInt()
-  @IsPositive()
-  customerId: number;
+  @ApiProperty({
+    description: "Customer ID (supports both integer and MongoDB ObjectID)",
+  })
+  @IsString()
+  customerId: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: "Restaurant ID (integer)" })
   @IsInt()
   @IsPositive()
   restaurantId: number;
 
-  @ApiProperty()
-  @IsInt()
-  @IsPositive()
-  addressId: number;
+  @ApiProperty({
+    description: "Address ID (supports both integer and MongoDB ObjectID)",
+  })
+  @IsString()
+  addressId: string;
 
   @ApiProperty({ type: [OrderItemDto], maxItems: 20 })
   @IsArray()

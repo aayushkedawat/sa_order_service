@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Order Service API",
-    "description": "Online Food Delivery - Order Service API Collection\n\nDatabase contains 300 pre-loaded orders with integer IDs (1-300)",
+    "description": "Online Food Delivery - Order Service API Collection\n\nDatabase contains 300+ orders\n\nSupports both integer IDs (legacy) and MongoDB ObjectIDs (customer/address)\n\nFeatures:\n- JSON structured logging\n- Prometheus metrics\n- Idempotency\n- Correlation ID tracing",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "order-service"
   },
@@ -42,7 +42,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"customerId\": 1,\n  \"restaurantId\": 36,\n  \"addressId\": 73,\n  \"items\": [\n    {\n      \"itemId\": 317,\n      \"quantity\": 2\n    },\n    {\n      \"itemId\": 316,\n      \"quantity\": 1\n    }\n  ],\n  \"clientTotals\": {\n    \"subtotal\": 420.00,\n    \"tax\": 21.00,\n    \"deliveryFee\": 40.00,\n    \"total\": 481.00\n  },\n  \"payment\": {\n    \"method\": \"CARD\",\n    \"reference\": \"tok_123\"\n  },\n  \"note\": \"Please ring the doorbell\"\n}",
+          "raw": "{\n  \"customerId\": \"69121597eb9d0be310631f65\",\n  \"restaurantId\": 1,\n  \"addressId\": \"69121597eb9d0be310631fa3\",\n  \"items\": [\n    {\n      \"itemId\": 1,\n      \"quantity\": 2\n    }\n  ],\n  \"clientTotals\": {\n    \"subtotal\": 481.72,\n    \"tax\": 24.09,\n    \"deliveryFee\": 40.00,\n    \"total\": 545.81\n  },\n  \"payment\": {\n    \"method\": \"CARD\",\n    \"reference\": \"tok_123\"\n  },\n  \"note\": \"Please ring the doorbell\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -54,7 +54,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v1", "orders"]
         },
-        "description": "Create a new order with idempotency support. Returns 201 on success, 409 on idempotency mismatch, 422 on business validation errors.\n\nNote: Uses integer IDs for customer, restaurant, address, and items."
+        "description": "Create a new order with MongoDB ObjectIDs (Customer Service integration).\n\nSupports both:\n- MongoDB ObjectIDs: customerId and addressId (24-char hex strings)\n- Integer IDs: restaurantId and itemId\n\nReturns 201 on success, 409 on idempotency mismatch, 422 on business validation errors."
       },
       "response": []
     },
@@ -80,7 +80,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"customerId\": 2,\n  \"restaurantId\": 7,\n  \"addressId\": 4,\n  \"items\": [\n    {\n      \"itemId\": 51,\n      \"quantity\": 1\n    }\n  ],\n  \"clientTotals\": {\n    \"subtotal\": 150.00,\n    \"tax\": 7.50,\n    \"deliveryFee\": 30.00,\n    \"total\": 187.50\n  },\n  \"payment\": {\n    \"method\": \"COD\"\n  }\n}",
+          "raw": "{\n  \"customerId\": \"69121597eb9d0be310631f65\",\n  \"restaurantId\": 1,\n  \"addressId\": \"69121597eb9d0be310631fa3\",\n  \"items\": [\n    {\n      \"itemId\": 2,\n      \"quantity\": 1\n    }\n  ],\n  \"clientTotals\": {\n    \"subtotal\": 153.96,\n    \"tax\": 7.70,\n    \"deliveryFee\": 40.00,\n    \"total\": 201.66\n  },\n  \"payment\": {\n    \"method\": \"COD\"\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -93,6 +93,44 @@
           "path": ["v1", "orders"]
         },
         "description": "Create order with Cash on Delivery payment method"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Order - Legacy Integer IDs",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$randomUUID}}",
+            "description": "Required - Ensures idempotent order creation"
+          },
+          {
+            "key": "x-correlation-id",
+            "value": "{{$randomUUID}}",
+            "description": "Optional - For distributed tracing"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": \"54\",\n  \"restaurantId\": 36,\n  \"addressId\": \"73\",\n  \"items\": [\n    {\n      \"itemId\": 317,\n      \"quantity\": 2\n    },\n    {\n      \"itemId\": 316,\n      \"quantity\": 1\n    }\n  ],\n  \"clientTotals\": {\n    \"subtotal\": 681.52,\n    \"tax\": 34.08,\n    \"deliveryFee\": 40.00,\n    \"total\": 755.60\n  },\n  \"payment\": {\n    \"method\": \"COD\"\n  },\n  \"note\": \"Backward compatibility test with integer IDs\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"]
+        },
+        "description": "Create order with legacy integer IDs (backward compatibility).\n\nNote: Integer IDs are stored as strings in the database but still work.\nThis maintains compatibility with the 300 existing seeded orders."
       },
       "response": []
     },
@@ -128,6 +166,20 @@
           "path": ["v1", "orders", "150"]
         },
         "description": "Example: Get a specific high-value order from seeded data"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Order 301 (MongoDB ObjectIDs)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders/301",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders", "301"]
+        },
+        "description": "Example: Get a new order created with MongoDB ObjectIDs.\n\nResponse will show:\n- customer_id: MongoDB ObjectID (24-char hex)\n- address_id: MongoDB ObjectID (24-char hex)\n- restaurant_id: Integer\n- item_id: Integer"
       },
       "response": []
     },
@@ -171,7 +223,7 @@
             {
               "key": "customerId",
               "value": "54",
-              "description": "Filter by customer ID (integer)"
+              "description": "Filter by customer ID (supports both integer and MongoDB ObjectID)"
             },
             {
               "key": "limit",
@@ -179,7 +231,32 @@
             }
           ]
         },
-        "description": "Get all orders for customer 54 (has multiple orders in seeded data)"
+        "description": "Get all orders for customer 54 (integer ID - legacy data).\n\nTip: Try customerId=69121597eb9d0be310631f65 for MongoDB ObjectID example."
+      },
+      "response": []
+    },
+    {
+      "name": "List Orders by Customer (MongoDB ObjectID)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders?customerId=69121597eb9d0be310631f65&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"],
+          "query": [
+            {
+              "key": "customerId",
+              "value": "69121597eb9d0be310631f65",
+              "description": "Filter by MongoDB ObjectID customer"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Get all orders for customer with MongoDB ObjectID.\n\nShows new orders created with Customer Service integration."
       },
       "response": []
     },
@@ -310,7 +387,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8085",
+      "value": "http://localhost:8086",
       "type": "string"
     }
   ]
