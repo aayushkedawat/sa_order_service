@@ -1,0 +1,317 @@
+{
+  "info": {
+    "name": "Order Service API",
+    "description": "Online Food Delivery - Order Service API Collection\n\nDatabase contains 300 pre-loaded orders with integer IDs (1-300)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "order-service"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders", "health"]
+        },
+        "description": "Health check endpoint to verify service is running"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$randomUUID}}",
+            "description": "Required - Ensures idempotent order creation"
+          },
+          {
+            "key": "x-correlation-id",
+            "value": "{{$randomUUID}}",
+            "description": "Optional - For distributed tracing"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": 1,\n  \"restaurantId\": 36,\n  \"addressId\": 73,\n  \"items\": [\n    {\n      \"itemId\": 317,\n      \"quantity\": 2\n    },\n    {\n      \"itemId\": 316,\n      \"quantity\": 1\n    }\n  ],\n  \"clientTotals\": {\n    \"subtotal\": 420.00,\n    \"tax\": 21.00,\n    \"deliveryFee\": 40.00,\n    \"total\": 481.00\n  },\n  \"payment\": {\n    \"method\": \"CARD\",\n    \"reference\": \"tok_123\"\n  },\n  \"note\": \"Please ring the doorbell\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"]
+        },
+        "description": "Create a new order with idempotency support. Returns 201 on success, 409 on idempotency mismatch, 422 on business validation errors.\n\nNote: Uses integer IDs for customer, restaurant, address, and items."
+      },
+      "response": []
+    },
+    {
+      "name": "Create Order - COD Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$randomUUID}}",
+            "description": "Required - Ensures idempotent order creation"
+          },
+          {
+            "key": "x-correlation-id",
+            "value": "{{$randomUUID}}",
+            "description": "Optional - For distributed tracing"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": 2,\n  \"restaurantId\": 7,\n  \"addressId\": 4,\n  \"items\": [\n    {\n      \"itemId\": 51,\n      \"quantity\": 1\n    }\n  ],\n  \"clientTotals\": {\n    \"subtotal\": 150.00,\n    \"tax\": 7.50,\n    \"deliveryFee\": 30.00,\n    \"total\": 187.50\n  },\n  \"payment\": {\n    \"method\": \"COD\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"]
+        },
+        "description": "Create order with Cash on Delivery payment method"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Order by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders/:orderId",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders", ":orderId"],
+          "variable": [
+            {
+              "key": "orderId",
+              "value": "1",
+              "description": "Order ID (integer, 1-300 for seeded data)"
+            }
+          ]
+        },
+        "description": "Retrieve a specific order by its integer ID. Try IDs 1-300 to see seeded data."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Order 150 (High Value)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders/150",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders", "150"]
+        },
+        "description": "Example: Get a specific high-value order from seeded data"
+      },
+      "response": []
+    },
+    {
+      "name": "List All Orders",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders?limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Number of results per page (default: 10)"
+            },
+            {
+              "key": "cursor",
+              "value": "",
+              "description": "Cursor for pagination (from previous response)",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "List orders with cursor-based pagination. Returns first 10 orders by default."
+      },
+      "response": []
+    },
+    {
+      "name": "List Orders by Customer",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders?customerId=54&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"],
+          "query": [
+            {
+              "key": "customerId",
+              "value": "54",
+              "description": "Filter by customer ID (integer)"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Get all orders for customer 54 (has multiple orders in seeded data)"
+      },
+      "response": []
+    },
+    {
+      "name": "List Orders by Restaurant",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders?restaurantId=36&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"],
+          "query": [
+            {
+              "key": "restaurantId",
+              "value": "36",
+              "description": "Filter by restaurant ID (integer)"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Get all orders for restaurant 36"
+      },
+      "response": []
+    },
+    {
+      "name": "List Delivered Orders",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders?status=DELIVERED&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"],
+          "query": [
+            {
+              "key": "status",
+              "value": "DELIVERED",
+              "description": "Filter by order status"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Get all delivered orders. Status options: CREATED, CONFIRMED, PREPARING, READY, DISPATCHED, DELIVERED, CANCELLED"
+      },
+      "response": []
+    },
+    {
+      "name": "List Cancelled Orders",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders?status=CANCELLED&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"],
+          "query": [
+            {
+              "key": "status",
+              "value": "CANCELLED"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Get all cancelled orders"
+      },
+      "response": []
+    },
+    {
+      "name": "Combined Filters - Customer + Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders?customerId=54&status=DELIVERED&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders"],
+          "query": [
+            {
+              "key": "customerId",
+              "value": "54"
+            },
+            {
+              "key": "status",
+              "value": "DELIVERED"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Get delivered orders for customer 54"
+      },
+      "response": []
+    },
+    {
+      "name": "Cancel Order",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/orders/:orderId",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "orders", ":orderId"],
+          "variable": [
+            {
+              "key": "orderId",
+              "value": "1",
+              "description": "Order ID (integer) to cancel"
+            }
+          ]
+        },
+        "description": "Cancel an existing order. Only orders in CREATED status can be cancelled."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8085",
+      "type": "string"
+    }
+  ]
+}

@@ -125,38 +125,29 @@ export class OrdersService {
 
     try {
       const order = this.orderRepo.create({
-        customerId: dto.customerId,
-        restaurantId: dto.restaurantId,
-        addressId: dto.addressId,
-        orderStatus: OrderStatus.CREATED,
-        paymentStatus:
+        customer_id: dto.customerId,
+        restaurant_id: dto.restaurantId,
+        address_id: dto.addressId,
+        order_status: OrderStatus.CREATED,
+        payment_status:
           dto.payment.method === "COD"
             ? PaymentStatus.PENDING
-            : PaymentStatus.NA,
-        subtotalAmount: subtotal,
-        taxAmount: tax,
-        deliveryFee,
-        orderTotal: total,
-        currency: "INR",
-        restaurantName: restaurant.name,
-        restaurantCity: restaurant.city,
-        deliveryCity: address.city,
-        paymentMethod: dto.payment.method,
-        note: dto.note,
-      });
+            : PaymentStatus.PENDING,
+        order_total: total,
+      } as any);
 
-      const savedOrder = await queryRunner.manager.save(order);
+      const savedOrder = (await queryRunner.manager.save(
+        order
+      )) as unknown as Order;
 
       const items = dto.items.map((item) => {
         const menuItem: any = itemMap.get(item.itemId);
         return this.orderItemRepo.create({
-          orderId: savedOrder.orderId,
-          itemId: item.itemId,
-          itemName: menuItem.name,
-          unitPrice: menuItem.price,
+          order_id: savedOrder.order_id,
+          item_id: item.itemId,
           quantity: item.quantity,
-          lineTotal: round2(menuItem.price * item.quantity),
-        });
+          price: menuItem.price,
+        } as any);
       });
 
       await queryRunner.manager.save(items);
@@ -174,7 +165,7 @@ export class OrdersService {
           await this.httpService.post(
             `${paySvc}/payments/charge`,
             {
-              orderId: savedOrder.orderId,
+              orderId: savedOrder.order_id,
               amount: total,
               currency: "INR",
               method: dto.payment.method,
@@ -183,8 +174,8 @@ export class OrdersService {
             { headers: { "Idempotency-Key": paymentIdempotencyKey } }
           );
 
-          savedOrder.paymentStatus = PaymentStatus.SUCCESS;
-          savedOrder.orderStatus = OrderStatus.CONFIRMED;
+          savedOrder.payment_status = PaymentStatus.SUCCESS;
+          savedOrder.order_status = OrderStatus.CONFIRMED;
           await queryRunner.manager.save(savedOrder);
 
           // Assign delivery
@@ -200,7 +191,7 @@ export class OrdersService {
           await this.httpService.post(
             `${delivSvc}/deliveries/assign`,
             {
-              orderId: savedOrder.orderId,
+              orderId: savedOrder.order_id,
               restaurantId: dto.restaurantId,
               addressId: dto.addressId,
             },
@@ -209,13 +200,13 @@ export class OrdersService {
           this.metricsService.observeDeliveryLatency(Date.now() - delivStart);
         } catch (error) {
           this.logger.error(`Payment failed: ${error.message}`);
-          savedOrder.paymentStatus = PaymentStatus.FAILED;
+          savedOrder.payment_status = PaymentStatus.FAILED;
           await queryRunner.manager.save(savedOrder);
           this.metricsService.incrementPaymentsFailed();
           await queryRunner.commitTransaction();
 
           const responseBody = {
-            orderId: savedOrder.orderId,
+            orderId: savedOrder.order_id,
             status: "PAYMENT_FAILED",
           };
           await this.idempotencyRepo.save({
@@ -237,10 +228,10 @@ export class OrdersService {
       this.metricsService.incrementOrdersPlaced();
 
       const responseBody = {
-        orderId: savedOrder.orderId,
-        status: savedOrder.orderStatus,
-        paymentStatus: savedOrder.paymentStatus,
-        total: savedOrder.orderTotal,
+        orderId: savedOrder.order_id,
+        status: savedOrder.order_status,
+        paymentStatus: savedOrder.payment_status,
+        total: savedOrder.order_total,
       };
 
       await this.idempotencyRepo.save({
@@ -260,8 +251,8 @@ export class OrdersService {
   }
 
   async findAll(
-    customerId?: string,
-    restaurantId?: string,
+    customerId?: number,
+    restaurantId?: number,
     status?: string,
     limit = 20,
     cursor?: string
@@ -269,27 +260,27 @@ export class OrdersService {
     const qb = this.orderRepo.createQueryBuilder("order");
 
     if (customerId)
-      qb.andWhere("order.customerId = :customerId", { customerId });
+      qb.andWhere("order.customer_id = :customerId", { customerId });
     if (restaurantId)
-      qb.andWhere("order.restaurantId = :restaurantId", { restaurantId });
-    if (status) qb.andWhere("order.orderStatus = :status", { status });
+      qb.andWhere("order.restaurant_id = :restaurantId", { restaurantId });
+    if (status) qb.andWhere("order.order_status = :status", { status });
     if (cursor)
-      qb.andWhere("order.createdAt < :cursor", { cursor: new Date(cursor) });
+      qb.andWhere("order.created_at < :cursor", { cursor: new Date(cursor) });
 
-    qb.orderBy("order.createdAt", "DESC").limit(limit);
+    qb.orderBy("order.created_at", "DESC").limit(limit);
 
     const orders = await qb.getMany();
     const nextCursor =
       orders.length === limit
-        ? orders[orders.length - 1].createdAt.toISOString()
+        ? orders[orders.length - 1].created_at.toISOString()
         : null;
 
     return { orders, nextCursor };
   }
 
-  async findOne(orderId: string) {
+  async findOne(orderId: number) {
     const order = await this.orderRepo.findOne({
-      where: { orderId },
+      where: { order_id: orderId },
       relations: ["items"],
     });
 
@@ -304,19 +295,19 @@ export class OrdersService {
     return order;
   }
 
-  async cancelOrder(orderId: string) {
+  async cancelOrder(orderId: number) {
     const order = await this.findOne(orderId);
 
-    if (order.orderStatus !== OrderStatus.CREATED) {
+    if (order.order_status !== OrderStatus.CREATED) {
       throw new BusinessException(
         "CANNOT_CANCEL",
         "Can only cancel orders in CREATED status"
       );
     }
 
-    order.orderStatus = OrderStatus.CANCELLED;
+    order.order_status = OrderStatus.CANCELLED;
     await this.orderRepo.save(order);
 
-    return { orderId, status: order.orderStatus };
+    return { orderId, status: order.order_status };
   }
 }

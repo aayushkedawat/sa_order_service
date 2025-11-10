@@ -3,7 +3,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   Index,
 } from "typeorm";
@@ -12,6 +11,10 @@ import { OrderItem } from "./order-item.entity";
 export enum OrderStatus {
   CREATED = "CREATED",
   CONFIRMED = "CONFIRMED",
+  PREPARING = "PREPARING",
+  READY = "READY",
+  DISPATCHED = "DISPATCHED",
+  DELIVERED = "DELIVERED",
   CANCELLED = "CANCELLED",
 }
 
@@ -19,75 +22,46 @@ export enum PaymentStatus {
   PENDING = "PENDING",
   SUCCESS = "SUCCESS",
   FAILED = "FAILED",
-  NA = "NA",
 }
 
 @Entity("orders")
-@Index(["customerId"])
-@Index(["createdAt"])
+@Index(["customer_id"])
+@Index(["restaurant_id"])
+@Index(["order_status"])
+@Index(["created_at"])
 export class Order {
-  @PrimaryGeneratedColumn("uuid")
-  orderId: string;
+  @PrimaryGeneratedColumn()
+  order_id: number;
 
-  @Column({ type: "uuid" })
-  customerId: string;
+  @Column({ type: "int" })
+  customer_id: number;
 
-  @Column({ type: "uuid" })
-  restaurantId: string;
+  @Column({ type: "int" })
+  restaurant_id: number;
 
-  @Column({ type: "uuid" })
-  addressId: string;
+  @Column({ type: "int" })
+  address_id: number;
 
   @Column({
     type: "enum",
     enum: OrderStatus,
     default: OrderStatus.CREATED,
   })
-  orderStatus: OrderStatus;
+  order_status: OrderStatus;
+
+  @Column({ type: "decimal", precision: 12, scale: 2 })
+  order_total: number;
 
   @Column({
     type: "enum",
     enum: PaymentStatus,
     default: PaymentStatus.PENDING,
   })
-  paymentStatus: PaymentStatus;
-
-  @Column({ type: "decimal", precision: 12, scale: 2 })
-  subtotalAmount: number;
-
-  @Column({ type: "decimal", precision: 12, scale: 2 })
-  taxAmount: number;
-
-  @Column({ type: "decimal", precision: 12, scale: 2 })
-  deliveryFee: number;
-
-  @Column({ type: "decimal", precision: 12, scale: 2 })
-  orderTotal: number;
-
-  @Column({ type: "varchar", length: 3, default: "INR" })
-  currency: string;
-
-  @Column({ type: "varchar", length: 255, nullable: true })
-  restaurantName: string;
-
-  @Column({ type: "varchar", length: 100, nullable: true })
-  restaurantCity: string;
-
-  @Column({ type: "varchar", length: 100, nullable: true })
-  deliveryCity: string;
-
-  @Column({ type: "varchar", length: 50, nullable: true })
-  paymentMethod: string;
-
-  @Column({ type: "text", nullable: true })
-  note: string;
+  payment_status: PaymentStatus;
 
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items: OrderItem[];
 
   @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+  created_at: Date;
 }

@@ -42,8 +42,8 @@ export class OrdersController {
     @Query("cursor") cursor?: string
   ) {
     return this.ordersService.findAll(
-      customerId,
-      restaurantId,
+      customerId ? parseInt(customerId) : undefined,
+      restaurantId ? parseInt(restaurantId) : undefined,
       status,
       limit,
       cursor
@@ -53,7 +53,7 @@ export class OrdersController {
   @Get(":orderId")
   @ApiOperation({ summary: "Get order by ID" })
   async findOne(@Param("orderId") orderId: string) {
-    return this.ordersService.findOne(orderId);
+    return this.ordersService.findOne(parseInt(orderId));
   }
 
   @Post()
@@ -90,6 +90,6 @@ export class OrdersController {
   @Delete(":orderId")
   @ApiOperation({ summary: "Cancel order" })
   async cancel(@Param("orderId") orderId: string) {
-    return this.ordersService.cancelOrder(orderId);
+    return this.ordersService.cancelOrder(parseInt(orderId));
   }
 }

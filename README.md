@@ -23,6 +23,23 @@ NestJS-based Order Service with database-per-service architecture, idempotency, 
 
 ## Quick Start
 
+### Docker Compose (Recommended - One Command!)
+
+```bash
+cd order-svc
+docker-compose up --build
+```
+
+That's it! This will:
+
+1. ✅ Start PostgreSQL database
+2. ✅ Build the application
+3. ✅ Run migrations (create tables)
+4. ✅ Seed initial data (300 orders + 856 order items from CSV)
+5. ✅ Start the order service
+
+Service available at `http://localhost:8085`
+
 ### Local Development
 
 ```bash
@@ -36,7 +53,7 @@ cp .env.example .env
 # Start PostgreSQL
 docker-compose up order-db -d
 
-# Run migrations
+# Run migrations and seed data
 npm run migration:run
 
 # Start service
@@ -44,15 +61,6 @@ npm run start:dev
 ```
 
 Service runs on `http://localhost:8080`
-
-### Docker Compose
-
-```bash
-# Build and start all services
-docker-compose up --build
-
-# Service available at http://localhost:8085
-```
 
 ### Kubernetes (Minikube)
 
@@ -90,12 +98,12 @@ curl -i -X POST http://localhost:8080/v1/orders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $IDK" \
   -d '{
-    "customerId": "c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1",
-    "restaurantId": "r1r1r1r1-r1r1-r1r1-r1r1-r1r1r1r1r1r1",
-    "addressId": "a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1",
+    "customerId": 1,
+    "restaurantId": 36,
+    "addressId": 73,
     "items": [
-      {"itemId": "i1i1i1i1-i1i1-i1i1-i1i1-i1i1i1i1i1i1", "quantity": 2},
-      {"itemId": "i2i2i2i2-i2i2-i2i2-i2i2-i2i2i2i2i2i2", "quantity": 1}
+      {"itemId": 317, "quantity": 2},
+      {"itemId": 316, "quantity": 1}
     ],
     "clientTotals": {
       "subtotal": 420.00,
@@ -127,22 +135,36 @@ curl -i -X POST http://localhost:8080/v1/orders \
 curl http://localhost:8080/v1/orders
 
 # Filter by customer
-curl "http://localhost:8080/v1/orders?customerId=c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1"
+curl "http://localhost:8080/v1/orders?customerId=54"
+
+# Filter by restaurant
+curl "http://localhost:8080/v1/orders?restaurantId=36"
+
+# Filter by status
+curl "http://localhost:8080/v1/orders?status=DELIVERED"
 
 # Cursor pagination
 curl "http://localhost:8080/v1/orders?limit=10&cursor=2024-01-01T00:00:00.000Z"
+
+# Combined filters
+curl "http://localhost:8080/v1/orders?customerId=54&status=DELIVERED&limit=20"
 ```
 
 ### Get Order
 
 ```bash
-curl http://localhost:8080/v1/orders/{orderId}
+# Get order by ID (integer)
+curl http://localhost:8080/v1/orders/1
+
+# Example response shows order with items
+curl http://localhost:8080/v1/orders/150
 ```
 
 ### Cancel Order
 
 ```bash
-curl -X DELETE http://localhost:8080/v1/orders/{orderId}
+# Cancel order by ID
+curl -X DELETE http://localhost:8080/v1/orders/1
 ```
 
 ### Prometheus Metrics
@@ -243,37 +265,133 @@ Common error codes:
 
 ### orders
 
-- `orderId` (uuid, PK)
-- `customerId`, `restaurantId`, `addressId` (uuid)
-- `orderStatus` (enum: CREATED|CONFIRMED|CANCELLED)
-- `paymentStatus` (enum: PENDING|SUCCESS|FAILED|NA)
-- `subtotalAmount`, `taxAmount`, `deliveryFee`, `orderTotal` (numeric 12,2)
-- `currency` (varchar, default 'INR')
-- Projections: `restaurantName`, `restaurantCity`, `deliveryCity`, `paymentMethod`, `note`
-- Timestamps: `createdAt`, `updatedAt`
+- `order_id` (SERIAL, PK) - Auto-incrementing integer ID
+- `customer_id` (INT) - Customer reference
+- `restaurant_id` (INT) - Restaurant reference
+- `address_id` (INT) - Delivery address reference
+- `order_status` (ENUM) - CREATED | CONFIRMED | PREPARING | READY | DISPATCHED | DELIVERED | CANCELLED
+- `order_total` (NUMERIC 12,2) - Total order amount
+- `payment_status` (ENUM) - PENDING | SUCCESS | FAILED
+- `created_at` (TIMESTAMP) - Order creation timestamp
+
+**Indexes:**
+
+- `idx_orders_customer` on `customer_id`
+- `idx_orders_restaurant` on `restaurant_id`
+- `idx_orders_status` on `order_status`
+- `idx_orders_created` on `created_at`
 
 ### order_items
 
-- `orderItemId` (uuid, PK)
-- `orderId` (uuid, FK → orders)
-- `itemId` (uuid)
-- `itemName`, `unitPrice`, `quantity` (≤5), `lineTotal`
+- `order_item_id` (SERIAL, PK) - Auto-incrementing integer ID
+- `order_id` (INT, FK → orders) - Foreign key to orders table
+- `item_id` (INT) - Menu item reference
+- `quantity` (INT) - Item quantity (1-5)
+- `price` (NUMERIC 12,2) - Item price at time of order
+
+**Indexes:**
+
+- `idx_order_items_order` on `order_id`
+- `idx_order_items_item` on `item_id`
 
 ### idempotency_keys
 
-- `idempotencyKey` (text, PK)
-- `requestHash` (text, SHA-256)
-- `responseBody` (jsonb)
-- `statusCode` (int)
-- `createdAt`
+- `idempotency_key` (TEXT, PK) - Unique idempotency key
+- `request_hash` (TEXT) - SHA-256 hash of request body
+- `response_body` (JSONB) - Cached response
+- `status_code` (INT) - HTTP status code
+- `created_at` (TIMESTAMP) - Key creation time
 
 ### outbox_events
 
-- `eventId` (uuid, PK)
-- `aggregateType`, `aggregateId`, `eventType`
-- `payload` (jsonb)
-- `published` (boolean)
-- `createdAt`
+- `event_id` (UUID, PK) - Unique event identifier
+- `aggregate_type` (VARCHAR 50) - Entity type (e.g., 'Order')
+- `aggregate_id` (INT) - Entity ID
+- `event_type` (VARCHAR 100) - Event name (e.g., 'OrderCreated')
+- `payload` (JSONB) - Event data
+- `published` (BOOLEAN) - Publication status
+- `created_at` (TIMESTAMP) - Event creation time
+
+**Indexes:**
+
+- `idx_outbox_published` on `published, created_at`
+
+## Initial Data
+
+The database comes pre-loaded with:
+
+- **300 orders** spanning various statuses and dates (2022-2025)
+- **856 order items** with realistic pricing
+- Data loaded from `initial_data/orders.csv` and `initial_data/order_items.csv`
+
+### Order Status Distribution
+
+The initial data includes orders in all lifecycle stages:
+
+- CREATED - New orders
+- CONFIRMED - Accepted by restaurant
+- PREPARING - Being prepared
+- READY - Ready for pickup
+- DISPATCHED - Out for delivery
+- DELIVERED - Successfully delivered
+- CANCELLED - Cancelled orders
+
+### Payment Status Distribution
+
+- SUCCESS - Successful payments
+- PENDING - Awaiting payment (COD orders)
+- FAILED - Failed payment attempts
+
+### Exploring the Seeded Data
+
+```bash
+# Get all orders for customer 54
+curl "http://localhost:8085/v1/orders?customerId=54"
+
+# Get all orders from restaurant 36
+curl "http://localhost:8085/v1/orders?restaurantId=36"
+
+# Get all delivered orders
+curl "http://localhost:8085/v1/orders?status=DELIVERED"
+
+# Get a specific order with items
+curl "http://localhost:8085/v1/orders/1"
+
+# Query database directly
+docker exec -it order-svc-order-db-1 psql -U order_user -d orderdb
+```
+
+**Useful SQL queries:**
+
+```sql
+-- Order status breakdown
+SELECT order_status, COUNT(*) FROM orders GROUP BY order_status;
+
+-- Payment status breakdown
+SELECT payment_status, COUNT(*) FROM orders GROUP BY payment_status;
+
+-- Orders by customer
+SELECT * FROM orders WHERE customer_id = 54;
+
+-- Orders with item counts
+SELECT o.order_id, o.order_total, COUNT(oi.order_item_id) as item_count
+FROM orders o
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY o.order_id
+LIMIT 10;
+
+-- Top customers by order count
+SELECT customer_id, COUNT(*) as order_count
+FROM orders
+GROUP BY customer_id
+ORDER BY order_count DESC
+LIMIT 10;
+
+-- Average order value by status
+SELECT order_status, AVG(order_total) as avg_total
+FROM orders
+GROUP BY order_status;
+```
 
 ## Environment Variables
 
