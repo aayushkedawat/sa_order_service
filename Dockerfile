@@ -21,10 +21,10 @@ COPY initial_data ./initial_data
 COPY src/config/data-source.ts ./src/config/data-source.ts
 
 # Copy and set up entrypoint script
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+COPY docker-entrypoint.js ./
+RUN chmod +x docker-entrypoint.js
 
 ENV PORT=8080
 EXPOSE 8080
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["node", "docker-entrypoint.js"]
